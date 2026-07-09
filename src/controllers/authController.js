@@ -72,3 +72,35 @@ const verifyEmail = async (req, res, next) => {
         next(error);
     }
 };
+
+const login = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+
+        const user = await User.findOne({ email });
+        if(!user) {
+            throw new AppError('Invalid email or password', 400);
+        }
+
+        if(!user.isVerified) {
+            throw new AppError('Please verify your email before logging in', 400);
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if(!isMatch) {
+            throw new AppError('Invalid email or password', 400);
+        }
+
+        const token = jwt.sign(
+            { userId: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.status(200).json({ token });
+    }
+    catch(error) {
+        next(error);
+    }
+};
