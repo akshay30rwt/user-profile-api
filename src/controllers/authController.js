@@ -143,3 +143,32 @@ const forgotPassword = async (req, res, next) => {
         next(error);
     }
 };
+
+const resetPassword = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpiry: { $gt: Date.now() }
+        });
+
+        if(!user) {
+            throw new AppError('Invalid or expired reset token', 400);
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        user.resetPasswordToken = null;
+        user.resetPasswordExpiry = null;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Password reset successful. You can now login.'
+        });
+    }
+    catch(error) {
+        next(error);
+    }
+};
