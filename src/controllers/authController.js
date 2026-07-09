@@ -104,3 +104,42 @@ const login = async (req, res, next) => {
         next(error);
     }
 };
+
+const forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        const user = await User.findOne({ email });
+        if(!user) {
+            throw new AppError('No account found with this email', 404);
+        }
+
+        const resetToken = generateToken();
+        const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
+
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpiry = resetExpiry;
+        await user.save();
+
+        const resetUrl = `http://localhost:3000/auth/reset-password/${resetToken}`;
+
+        await sendEmail({
+            to: email,
+            subject: 'Password Reset Request',
+            html: `
+                <h2>Password Reset</h2>
+                <p>You requested a password reset. Click the link below:</p>
+                <a href="${resetUrl}">Reset Password</a>
+                <p>This link expires in 1 hour.</p>
+                <p>If you didn't request this, ignore this email.</p>
+            `
+        });
+
+        res.status(200).json({
+            message: 'Password reset link sent to your email'
+        });
+    }
+    catch(error) {
+        next(error);
+    }
+};
