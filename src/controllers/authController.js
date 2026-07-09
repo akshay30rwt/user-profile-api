@@ -209,3 +209,28 @@ const uploadAvatar = async (req, res, next) => {
         next(err);
     }
 };
+
+const getProfile = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.userId).select('-password -verificationToken -resetPasswordToken -resetPasswordExpiry');
+
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        res.status(200).json(user);
+
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = {
+    register,
+    verifyEmail,
+    login,
+    forgotPassword,
+    resetPassword,
+    uploadAvatar,
+    getProfile
+};
