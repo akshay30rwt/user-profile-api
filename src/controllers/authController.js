@@ -172,3 +172,40 @@ const resetPassword = async (req, res, next) => {
         next(error);
     }
 };
+
+const uploadAvatar = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            throw new AppError('Please upload an image', 400);
+        }
+
+        const user = await User.findById(req.userId);
+
+        if (user.avatar.publicId) {
+            await cloudinary.uploader.destroy(user.avatar.publicId);
+        }
+
+        const result = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: 'avatars' },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+            uploadStream.end(req.file.buffer);
+        });
+
+        user.avatar.url = result.secure_url;
+        user.avatar.publicId = result.public_id;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Avatar uploaded successfully',
+            avatar: user.avatar.url
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};
