@@ -50,3 +50,25 @@ const register = async (req, res, next) => {
         next(err);
     }
 };
+
+const verifyEmail = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+
+        const user = await User.findOne({ verificationToken: token });
+        if(!user) {
+            throw new AppError('Invalid or expired verification token', 400);
+        }
+
+        user.isVerified = true;
+        user.verificationToken = null;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Email verified successfully. You can now login.'
+        });
+    }
+    catch(error) {
+        next(error);
+    }
+};
